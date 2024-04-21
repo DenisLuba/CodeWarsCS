@@ -2,7 +2,7 @@
 {
     public class RockPaperScissors
     {
-        const string p1Won = "Player 1 won!";
+        private const string p1Won = "Player 1 won!";
         const string p2Won = "Player 2 won!";
         const string draw = "Draw!";
 
