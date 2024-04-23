@@ -22,5 +22,12 @@
         {
             Assert.That(RockPaperScissors.Rps(player1, player2), Is.EqualTo(winner));
         }
+
+        [Test]
+        public static void Test2()
+        {
+            var arr = new[] { 1, 2, 5, 6 };
+            Assert.That(arr.Average(), Is.EqualTo(3.5));
+        }
     }
 }
