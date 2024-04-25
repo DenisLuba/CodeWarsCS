@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CodeWars.Tests
+namespace CodeWars.Test
 {
     internal class CorrectMistakesOfCharacterRecognitionTest
     {
