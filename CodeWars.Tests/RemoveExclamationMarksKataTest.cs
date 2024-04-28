@@ -1,4 +1,4 @@
-﻿namespace CodeWars.Test
+﻿namespace CodeWars.Tests
 {
     [TestFixture]
     public class RemoveExclamationMarksKataTest

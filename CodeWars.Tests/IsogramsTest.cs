@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CodeWars.Test
+namespace CodeWars.Tests
 {
     [TestFixture]
     internal class IsogramsTest
