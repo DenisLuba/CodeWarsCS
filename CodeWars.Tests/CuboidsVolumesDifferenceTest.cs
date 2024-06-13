@@ -21,7 +21,7 @@ namespace CodeWars.Tests
             }
         }
 
-        [Test, TestCaseSource("testCases")]
+        [Test, TestCaseSource(nameof(testCases))]
         public int Test(int[] a, int[] b) => CuboidsVolumesDifference.FindDifference(a, b);
     }
 }
