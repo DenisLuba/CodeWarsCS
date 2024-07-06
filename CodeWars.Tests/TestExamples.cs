@@ -24,6 +24,7 @@ internal class TestExamples
     [TestCase("Some parameters of the method", "result of the method")]
     public void Test_3(string parameters, string expected) => Assert.That($"Calling the method being checked with {parameters}", Is.EqualTo(expected));
 
+
     // Example 4 - Test Exception
     [TestCase("Some parameters of the method")]
     public void Test_4_Exceptions(string parameters)
