@@ -20,7 +20,7 @@ public class PascalDiagonal
 			pos = row - pos;
 		for (i = pos + 1; i <= row; i++)
 			koef = koef * i;
-		for (i = 1; i < (row - pos + 1); i++)
+		for (i = 1; i <= (row - pos); i++)
 			koef = koef / i;
 		return koef;
 	}
