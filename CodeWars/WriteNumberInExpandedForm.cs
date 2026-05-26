@@ -2,24 +2,6 @@
 
 public class WriteNumberInExpandedForm
 {
-    //public static string ExpandedForm(long num)
-    //{
-    //    var nums = new LinkedList<long>();
-
-    //    for (int i = 10; i <= num; i *= 10)
-    //    {
-    //        var d = num % i;
-    //        if (d == 0) continue;
-
-    //        nums.AddFirst(d);
-    //        num -= d;
-    //    }
-
-    //    nums.AddFirst(num);
-
-    //    return string.Join(" + ", nums);
-    //}
-
     public static string ExpandedForm(long num)
         => string.Join(" + ",
             num
