@@ -5,17 +5,22 @@ public class LinearEquations
     public static string Solve(string input)
     {
         var matrix = GetMatrixFromString(input);
+        var results = SolveByGauss(matrix);
+        return GetStringFromMatrix(results);
     }
 
     static Fraction[][] SolveByGauss(Fraction[][] matrix)
     {
         SetEchelonFormMatrix(matrix);
+        return GetResults(matrix);
     }
 
     static void SetEchelonFormMatrix(Fraction[][] matrix)
     {
         var factorFraction = new Fraction();
 
+        // создаем ступенчатую структуру системы линейных уравнений 
+        // с коэффициентом, равным 1, для каждой первой переменной в этой лестнице
         for (int k = 0; k < matrix.Length && k < matrix[0].Length - 1; k++)
         {
             for (int i = k; i < matrix.Length; i++)
@@ -43,99 +48,63 @@ public class LinearEquations
         }
     }
 
-    static Fraction[][] GetResult(Fraction[][] matrix)
+    static Fraction[][] GetResults(Fraction[][] matrix)
     {
         var valuesNumber = matrix[0].Length - 1;
 
-        var result = new Fraction[valuesNumber][];
-        var coefficient = new Fraction();
+        var results = new Fraction[valuesNumber][];
 
         // обратный ход метода Гаусса
         for (int i = matrix.Length - 1; i >= 0; i--)
         {
-            var equation = matrix[i];
-
-            for (int xi = 0; xi < valuesNumber; xi++)
-            {
-                // ищем первый ненулевой элемент в строке, он же является искомой переменной с индексом xi и множителем, равным 1
-                if (equation[xi] == 0) continue;
-
-                for (int xFree = xi + 1; xFree < valuesNumber; xFree++)
-                {
-                    // переносим все члены, кроме искомого xi, в правую часть уравнения (т.е. в столбцы свободных членов)
-                    equation[xFree] *= -1;
-                    coefficient = equation[xFree];
-
-                    if (i == matrix.Length - 1) continue;
-
-                    if (result[xFree] is null || result[xFree].Length == 0)
-                    {
-                        result[xFree] = new Fraction[matrix[i].Length];
-                        for (int j = 0; j < result[xFree].Length; j++)
-                        {
-                            result[xFree][j] = new Fraction();
-                            if (j == xFree)
-                            {
-                                result[xFree][j].Numerator = 1;
-                            }
-                        }
-                        continue;
-                    }
-
-                    // если в матрице результатов уже есть значения для свободных переменных, то подставляем их в уравнение
-                    // т.е. умножаем коэффициент известной свободной переменной на её значение в матрице результатов 
-                    // и складываем в столбец свободные члены этой известной переменной со свободными членами текущего уравнения
-                    for (int xj = xFree + 1; xj < equation.Length - 1; xj++)
-                    {
-                        equation[xj] += (result[xFree][xj] * coefficient);
-                    }
-
-
-                }
-
-                result[i] = matrix[i];
-                result[i][xi].Numerator = 0;
-
-
-
-
-            }
-
-
+            ExpressVariable(matrix[i], results);
         }
+
+        return results;
     }
 
     static void ExpressVariable(Fraction[] equation, Fraction[][] results)
     {
         var valuesNumber = equation.Length - 1;
-        var coefficient = new Fraction();
-        int xi = 0;
+        int xiResult = 0;
+        int xiFree = 0;
 
         // ищем первый ненулевой элемент в строке, он же является искомой переменной с индексом xi и множителем, равным 1
-        while (xi < valuesNumber || equation[xi] == 0) xi++;
-        // переносим все члены, кроме искомого xi, в правую часть уравнения (т.е. в столбцы свободных членов)
-        for (int i = xi + 1; i < valuesNumber; i++) equation[i] *= -1;
-
-        if (results.Length - 1 == xi)
+        for (; equation[xiFree] == 0 && xiFree < valuesNumber; xiFree++)
         {
-            results[xi] = equation;
+            xiResult = xiFree;
+        }
+        
+        // переносим все члены, кроме искомого xi, в правую часть уравнения 
+        // (т.е. в столбцы свободных членов)
+        for (int i = xiFree + 1; i < valuesNumber; i++) equation[i] *= -1;
+
+        // если мы выводим значение для последней в списке искомой переменной, 
+        // то в результаты записываем уже найденное для нее значение
+        if (xiResult == results.Length - 1)
+        {
+            results[xiResult] = equation;
             return;
         }
 
-        for (; xi < valuesNumber; xi++)
+        // если мы выводим не последнюю переменную из списка переменных, 
+        // то подставляем во все свободные переменные уже найденные ранее значения
+        for (; xiFree < valuesNumber; xiFree++)
         {
-            if (results.Length - 1 == xi) continue;
-
-            if (results[xi] is null || results[xi].Length == 0)
+            // если значение для переменной еще не присвоено, 
+            // то записываем в список переменных саму эту переменную.
+            // Т.е. ее коэффициент равен 1, а остальные коэффициенты равны 0.
+            // И переходим дальше к следующей переменной
+            if (results[xiFree] is null || results[xiFree].Length == 0)
             {
-                results[xi] = new Fraction[equation.Length];
+                results[xiFree] = new Fraction[equation.Length];
 
-                for (int j = 0; j < valuesNumber + 1; j++)
+                for (int j = 0; j < equation.Length; j++)
                 {
-                    results[xi][j] = new Fraction();
-                    if (j == xi)
+                    results[xiFree][j] = new Fraction();
+                    if (j == xiFree)
                     {
-                        results[xi][j].Numerator = 1;
+                        results[xiFree][j].Numerator = 1;
                     }
                 }
                 continue;
@@ -144,22 +113,27 @@ public class LinearEquations
             // если в матрице результатов уже есть значения для свободных переменных, то подставляем их в уравнение
             // т.е. умножаем коэффициент известной свободной переменной на её значение в матрице результатов 
             // и складываем в столбец свободные члены этой известной переменной со свободными членами текущего уравнения
-            for (int xj = xi + 1; xj < equation.Length - 1; xj++)
+            for (int xj = xiFree + 1; xj < equation.Length - 1; xj++)
             {
-                equation[xj] += (results[xi][xj] * coefficient);
+                equation[xj] += results[xiFree][xj] * equation[xiFree];
             }
 
-
+            // само значение переменной в уравнении приравниваем нулю 
+            // после того, как мы ее подменили известным для нее значением,
+            // которое выражено следующими в списке переменными:
+            // Например, для x2 = a * x3 + b * x4 + c * x5 ... :
+            // x2 = 0 * x0 ; 0 * x1 ; 0 * x2 ; a * x3 ; b * x4 ; c * x5 ...
+            equation[xiFree].Numerator = 0;
+            equation[xiFree].Denominator = 1;
         }
 
-        results[i] = matrix[i];
-        results[i][xi].Numerator = 0;
-
-
-
-
-
-    }
+        // упростим все дроби
+        for (int i = xiFree; i < equation.Length; i++)
+        {
+            Fraction.Reduce(equation[i]);
+        }
+        
+        results[xiResult] = equation;
     }
 
     static Fraction[][] GetMatrixFromString(string input)
@@ -187,97 +161,118 @@ public class LinearEquations
         return matrix;
     }
 
+    static string GetStringFromMatrix(Fraction[][] results)
+    {
+        var equations = new Fraction[results.Length][];
+        var result = new StringBuilder();
+
+        for (int i = 0; i < results.Length; i++)
+        {
+            // перенесем последний коэффициент, который стоит без переменной (просто число),
+            // в начало решения уравнения, т.е. этот коэффициент будет иметь индекс 0, а дальше 
+            // коэффициенты будут стоять при искомых переменных:
+            // a + b * x0 + c * x1 + d * x2 ...
+            var equation = new Fraction[results[i].Length];
+            equation[0] = results[i][results[i].Length - 1];
+            for (int j = 0; j < results[i].Length - 2; j++)
+            {
+                equation[j + 1] = results[i][j];
+            }
+        }
+    }
+
     class Fraction(int numerator = 0, int denominator = 1)
-{
-    public int Numerator { get; set; } = numerator;
-    public int Denominator { get; set; } = denominator == 0 ? throw new ArgumentException("Denominator cannot be zero") : denominator;
-
-    public static Fraction operator *(Fraction a, Fraction b)
     {
-        return new Fraction(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
-    }
+        public int Numerator { get; set; } = numerator;
+        public int Denominator { get; set; } = denominator == 0 ? throw new ArgumentException("Denominator cannot be zero") : denominator;
 
-    public static Fraction operator *(Fraction a, int b)
-    {
-        return new Fraction(a.Numerator * b, a.Denominator);
-    }
-
-    public static Fraction operator +(Fraction a, Fraction b)
-    {
-        int numerator = a.Numerator * b.Denominator + b.Numerator * a.Denominator;
-        int denominator = a.Denominator * b.Denominator;
-        return new Fraction(numerator, denominator);
-    }
-
-    public static Fraction operator -(Fraction a, Fraction b)
-    {
-        int numerator = a.Numerator * b.Denominator - b.Numerator * a.Denominator;
-        int denominator = a.Denominator * b.Denominator;
-        return new Fraction(numerator, denominator);
-    }
-
-    public static Fraction operator -(Fraction f)
-    {
-        return new Fraction(-f.Numerator, f.Denominator);
-    }
-
-    public static bool operator ==(Fraction a, double b)
-    {
-        return a.Numerator / a.Denominator == b;
-    }
-
-    public static bool operator !=(Fraction a, double b)
-    {
-        return !(a == b);
-    }
-
-    public static bool operator <(Fraction a, double b)
-    {
-        return a.Numerator / a.Denominator < b;
-    }
-
-    public static bool operator >(Fraction a, double b)
-    {
-        return a.Numerator / a.Denominator > b;
-    }
-
-    public static Fraction Reduce(Fraction f)
-    {
-        int gcd = GetGCD(f.Numerator, f.Denominator);
-        return new Fraction(f.Numerator / gcd, f.Denominator / gcd);
-    }
-
-    static int GetGCD(int a, int b)
-    {
-        while (b != 0)
+        public static Fraction operator *(Fraction a, Fraction b)
         {
-            int temp = b;
-            b = a % b;
-            a = temp;
+            return new Fraction(a.Numerator * b.Numerator, a.Denominator * b.Denominator);
         }
-        return a;
-    }
 
-    public override string ToString()
-    {
-        if (Denominator == 1) return Numerator.ToString();
-        return $"{Numerator}/{Denominator}";
-    }
-
-    public override bool Equals(object? obj)
-    {
-        if (obj is Fraction other)
+        public static Fraction operator *(Fraction a, int b)
         {
-            var reducedThis = Reduce(this);
-            var reducedOther = Reduce(other);
-            return reducedThis.Numerator == reducedOther.Numerator && reducedThis.Denominator == reducedOther.Denominator;
+            return new Fraction(a.Numerator * b, a.Denominator);
         }
-        return false;
-    }
 
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Numerator, Denominator);
+        public static Fraction operator +(Fraction a, Fraction b)
+        {
+            int numerator = a.Numerator * b.Denominator + b.Numerator * a.Denominator;
+            int denominator = a.Denominator * b.Denominator;
+            return new Fraction(numerator, denominator);
+        }
+
+        public static Fraction operator -(Fraction a, Fraction b)
+        {
+            int numerator = a.Numerator * b.Denominator - b.Numerator * a.Denominator;
+            int denominator = a.Denominator * b.Denominator;
+            return new Fraction(numerator, denominator);
+        }
+
+        public static Fraction operator -(Fraction f)
+        {
+            return new Fraction(-f.Numerator, f.Denominator);
+        }
+
+        public static bool operator ==(Fraction a, double b)
+        {
+            return a.Numerator / a.Denominator == b;
+        }
+
+        public static bool operator !=(Fraction a, double b)
+        {
+            return !(a == b);
+        }
+
+        public static bool operator <(Fraction a, double b)
+        {
+            return a.Numerator / a.Denominator < b;
+        }
+
+        public static bool operator >(Fraction a, double b)
+        {
+            return a.Numerator / a.Denominator > b;
+        }
+
+        public static void Reduce(Fraction f)
+        {
+            int gcd = GetGCD(f.Numerator, f.Denominator);
+            f.Numerator /= gcd;
+            f.Denominator /= gcd;
+        }
+
+        static int GetGCD(int a, int b)
+        {
+            while (b != 0)
+            {
+                int temp = b;
+                b = a % b;
+                a = temp;
+            }
+            return a;
+        }
+
+        public override string ToString()
+        {
+            if (Denominator == 1) return Numerator.ToString();
+            return $"{Numerator}/{Denominator}";
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is Fraction other)
+            {
+                var reducedThis = Reduce(this);
+                var reducedOther = Reduce(other);
+                return reducedThis.Numerator == reducedOther.Numerator && reducedThis.Denominator == reducedOther.Denominator;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Numerator, Denominator);
+        }
     }
-}
 }
