@@ -1,4 +1,7 @@
-﻿namespace CodeWars;
+﻿using System;
+using System.Text;
+
+namespace CodeWars;
 
 public class LinearEquations
 {
@@ -11,7 +14,7 @@ public class LinearEquations
 
     static Fraction[][] SolveByGauss(Fraction[][] matrix)
     {
-        SetEchelonFormMatrix(matrix);
+        //SetEchelonFormMatrix(matrix);
         return GetResults(matrix);
     }
 
@@ -59,25 +62,78 @@ public class LinearEquations
         {
             ExpressVariable(matrix[i], results);
         }
-
+        CheckResult(results);
         return results;
+    }
+
+    static void CheckResult(Fraction[][] results)
+    {
+        for (int i = 0; i < results.Length; i++)
+        {
+            if (results[i] is null)
+            {
+                results[i] = new Fraction[results.Length + 1];
+
+                for (int j = 0; j < results[i].Length; j++)
+                {
+                    results[i][j] = new Fraction();
+                    if (j == i)
+                    {
+                        results[i][j].Numerator = 1;
+                    }
+                }
+                continue;
+            }
+
+            for (int j = 0; j < results[i].Length; j++)
+            {
+                if (results[i][j] is null)
+                {
+                    results[i][j] = new Fraction();
+                }
+            }
+        }
     }
 
     static void ExpressVariable(Fraction[] equation, Fraction[][] results)
     {
-        var valuesNumber = equation.Length - 1;
-        int xiResult = 0;
-        int xiFree = 0;
-
-        // ищем первый ненулевой элемент в строке, он же является искомой переменной с индексом xi и множителем, равным 1
-        for (; equation[xiFree] == 0 && xiFree < valuesNumber; xiFree++)
+        for (int i = 0; i < equation.Length; i++)
         {
-            xiResult = xiFree;
+            if (equation[i] is null)
+            {
+                equation[i] = new Fraction();
+            }
         }
-        
+
+        var valuesNumber = equation.Length - 1; // количество переменных
+        int xiResult = 0; // переменная, которую будем искать
+        int xiFree = 0; // переменные, через, которые будем выражать искомую переменную
+
+        // ищем первый ненулевой элемент в строке, он же является искомой переменной с индексом xiFree
+        while (xiFree < valuesNumber && equation[xiFree] == 0) xiFree++;
+        xiResult = xiFree;
+        xiFree++;
+        if (xiResult >= valuesNumber)
+        {
+            // если в строке все коэффициенты при переменных равны нулю, то 
+            // проверяем, равен ли свободный член нулю. Если нет, то уравнение не имеет смысла
+            if (equation[valuesNumber] != 0)
+            {
+                throw new InvalidOperationException("The equation has no solution.");
+            }
+
+            return;
+        }
+
         // переносим все члены, кроме искомого xi, в правую часть уравнения 
-        // (т.е. в столбцы свободных членов)
-        for (int i = xiFree + 1; i < valuesNumber; i++) equation[i] *= -1;
+        // (т.е. в столбцы свободных членов) и делим на коэффициент при искомой переменной (в левой части уравнения)
+        for (int i = xiFree; i < valuesNumber; i++)
+        {
+            equation[i] /= -equation[xiResult];
+        }
+        equation[valuesNumber] /= equation[xiResult];
+
+        equation[xiResult] = new Fraction(); // обнуляем коэффициент при искомой переменной, т.к. она теперь в правой части уравнения
 
         // если мы выводим значение для последней в списке искомой переменной, 
         // то в результаты записываем уже найденное для нее значение
@@ -99,46 +155,37 @@ public class LinearEquations
             {
                 results[xiFree] = new Fraction[equation.Length];
 
-                for (int j = 0; j < equation.Length; j++)
-                {
-                    results[xiFree][j] = new Fraction();
-                    if (j == xiFree)
-                    {
-                        results[xiFree][j].Numerator = 1;
-                    }
-                }
+                for (int j = 0; j < equation.Length; j++) results[xiFree][j] = new Fraction();
+                results[xiFree][xiFree].Numerator = 1;
                 continue;
             }
+
+            var coefficients = equation[xiFree];
+            if (coefficients == 0) continue;
 
             // если в матрице результатов уже есть значения для свободных переменных, то подставляем их в уравнение
             // т.е. умножаем коэффициент известной свободной переменной на её значение в матрице результатов 
             // и складываем в столбец свободные члены этой известной переменной со свободными членами текущего уравнения
             for (int xj = xiFree + 1; xj < equation.Length - 1; xj++)
             {
-                equation[xj] += results[xiFree][xj] * equation[xiFree];
+                equation[xj] += results[xiFree][xj] * coefficients;
             }
 
-            // само значение переменной в уравнении приравниваем нулю 
-            // после того, как мы ее подменили известным для нее значением,
-            // которое выражено следующими в списке переменными:
-            // Например, для x2 = a * x3 + b * x4 + c * x5 ... :
-            // x2 = 0 * x0 ; 0 * x1 ; 0 * x2 ; a * x3 ; b * x4 ; c * x5 ...
-            equation[xiFree].Numerator = 0;
-            equation[xiFree].Denominator = 1;
+            equation[xiFree] = new Fraction();
         }
 
         // упростим все дроби
-        for (int i = xiFree; i < equation.Length; i++)
+        for (int i = xiResult + 1; i < equation.Length; i++)
         {
             Fraction.Reduce(equation[i]);
         }
-        
+
         results[xiResult] = equation;
     }
 
     static Fraction[][] GetMatrixFromString(string input)
     {
-        var lines = input.Split('\n', 'r', StringSplitOptions.RemoveEmptyEntries);
+        var lines = input.Split(['\n', '\r'], StringSplitOptions.RemoveEmptyEntries);
         Fraction[][] matrix = new Fraction[lines.Length][];
 
         for (int i = 0; i < lines.Length; i++)
@@ -163,22 +210,48 @@ public class LinearEquations
 
     static string GetStringFromMatrix(Fraction[][] results)
     {
-        var equations = new Fraction[results.Length][];
-        var result = new StringBuilder();
+        var output = new StringBuilder();
+        if (results.Length == 0 || results[0].Length == 0) return string.Empty;
 
-        for (int i = 0; i < results.Length; i++)
+        string AppendRow(int k)
         {
-            // перенесем последний коэффициент, который стоит без переменной (просто число),
-            // в начало решения уравнения, т.е. этот коэффициент будет иметь индекс 0, а дальше 
-            // коэффициенты будут стоять при искомых переменных:
-            // a + b * x0 + c * x1 + d * x2 ...
-            var equation = new Fraction[results[i].Length];
-            equation[0] = results[i][results[i].Length - 1];
-            for (int j = 0; j < results[i].Length - 2; j++)
+            //var zeroNumber = 0;
+            var expression = new StringBuilder();
+            for (int i = 0; i < results.Length; i++)
             {
-                equation[j + 1] = results[i][j];
+                if (results[i][k] is null)
+                    results[i][k] = new Fraction();
+
+                //if (results[i][k].Numerator == 0)
+                //{
+                //    zeroNumber++;
+                //}
+
+                var z = i == 0 ? $"({results[i][k]}" : $"; {results[i][k]}";
+                expression.Append(z);
+            }
+            //if (zeroNumber == results.Length) return string.Empty;
+
+            expression.Append(")");
+            return expression.ToString();
+        }
+
+        var start = AppendRow(results[0].Length - 1);
+        if (!string.IsNullOrEmpty(start))
+        {
+            output.Append(start);
+        }
+
+        for (int i = 0; i < results[0].Length - 1; i++)
+        {
+            var expression = AppendRow(i);
+            var s = i == 0 ? $" q{i + 1} * " : $" + q{i + 1} * ";
+            if (!string.IsNullOrEmpty(expression))
+            {
+                output.Append(s).Append(expression);
             }
         }
+        return output.ToString();
     }
 
     class Fraction(int numerator = 0, int denominator = 1)
@@ -201,6 +274,21 @@ public class LinearEquations
             int numerator = a.Numerator * b.Denominator + b.Numerator * a.Denominator;
             int denominator = a.Denominator * b.Denominator;
             return new Fraction(numerator, denominator);
+        }
+
+        public static Fraction operator /(Fraction a, Fraction b)
+        {
+            if (b.Numerator == 0)
+            {
+                throw new DivideByZeroException("Cannot divide by zero fraction.");
+            }
+            var result = new Fraction(a.Numerator * b.Denominator, a.Denominator * b.Numerator);
+            if (result.Denominator < 0)
+            {
+                result.Numerator = -result.Numerator;
+                result.Denominator = -result.Denominator;
+            }
+            return result;
         }
 
         public static Fraction operator -(Fraction a, Fraction b)
@@ -235,11 +323,17 @@ public class LinearEquations
             return a.Numerator / a.Denominator > b;
         }
 
-        public static void Reduce(Fraction f)
+        public static Fraction Reduce(Fraction f)
         {
             int gcd = GetGCD(f.Numerator, f.Denominator);
             f.Numerator /= gcd;
             f.Denominator /= gcd;
+            if (f.Denominator < 0)
+            {
+                f.Numerator = -f.Numerator;
+                f.Denominator = -f.Denominator;
+            }
+            return f;
         }
 
         static int GetGCD(int a, int b)
