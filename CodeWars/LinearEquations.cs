@@ -165,6 +165,11 @@ public class LinearEquations
         // то в результаты записываем уже найденное для нее значение
         if (xiResult == results.Length - 1)
         {
+            // упростим все дроби
+            for (int i = xiResult + 1; i < equation.Length; i++)
+            {
+                Fraction.Reduce(equation[i]);
+            }
             results[xiResult] = equation;
             return;
         }
@@ -201,7 +206,7 @@ public class LinearEquations
             // если в матрице результатов уже есть значения для свободных переменных, то подставляем их в уравнение
             // т.е. умножаем коэффициент известной свободной переменной на её значение в матрице результатов 
             // и складываем в столбец свободные члены этой известной переменной со свободными членами текущего уравнения
-            for (int xj = xiFree + 1; xj < equation.Length - 1; xj++)
+            for (int xj = xiFree + 1; xj < equation.Length; xj++)
             {
                 equation[xj] += results[xiFree][xj] * coefficients;
             }
@@ -272,12 +277,11 @@ public class LinearEquations
         }
 
         var start = AppendRow(results[0].Length - 1, out bool _);
-        if (!string.IsNullOrEmpty(start))
-        {
-            output.Append(start).Append(" + ");
-        }
-        int k = 0;
-        for (int i = 0; i < results[0].Length - 1; i++, k++)
+        if (!string.IsNullOrEmpty(start)) output.Append(start);
+        
+        var end = new StringBuilder();
+
+        for (int i = 0, k = 0; i < results[0].Length - 1; i++, k++)
         {
             var expression = AppendRow(i, out bool isZero);
             if (isZero)
@@ -285,11 +289,15 @@ public class LinearEquations
                 k--;
                 continue;
             }
-            var s = k == 0 ? $"q{k + 1} * " : $" + q{k + 1} * ";
             if (!string.IsNullOrEmpty(expression))
             {
-                output.Append(s).Append(expression);
+                var s = k == 0 ? $"q{k + 1} * " : $" + q{k + 1} * ";
+                end.Append(s).Append(expression);
             }
+        }
+        if (!string.IsNullOrEmpty(end.ToString()))
+        {
+            output.Append(" + ").Append(end);
         }
         return output.ToString();
     }
