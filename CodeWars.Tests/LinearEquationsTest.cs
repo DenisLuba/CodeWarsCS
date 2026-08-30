@@ -15,15 +15,8 @@ public class LinearEquationsTest
     public void SimpleTest(string input, string output)
     {
         var linearEquations = new LinearEquations();
-        Assert.That(linearEquations.Solve(input), Is.EqualTo(output));
         Console.WriteLine(linearEquations.Solve(input));
+        Assert.That(linearEquations.Solve(input), Is.EqualTo(output));
     }
 
 }
-
-/*
-1 1 2 4 0
--1 -1 -2 -4 0
-0 1 1 0 0
-0 -1 -1 0 0
- */

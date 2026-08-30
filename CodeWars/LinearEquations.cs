@@ -11,9 +11,16 @@ public class LinearEquations
         try
         {
             var matrix = GetMatrixFromString(input);
+            Console.WriteLine("Input matrix:");
+            PrintMatrix(matrix);
+
             SetEchelonFormMatrix(matrix);
+            Console.WriteLine("\nEchelon form matrix:");
+            PrintMatrix(matrix);
 
             var results = SolveByGauss(matrix);
+            Console.WriteLine("\nResults matrix:");
+            PrintMatrix(results);
 
             return GetStringFromMatrix(results);
         }
@@ -23,6 +30,9 @@ public class LinearEquations
             return "SOL = NONE";
         }
     }
+    
+    static void PrintMatrix(Fraction[][] matrix)
+        => Console.WriteLine(string.Join("\n", matrix.Select(g => string.Join(" | ", g.Select(x => x.ToString())))));
 
     static Fraction[][] SolveByGauss(Fraction[][] matrix)
     {
@@ -64,9 +74,9 @@ public class LinearEquations
 
     static void SetEchelonFormMatrix(Fraction[][] matrix)
     {
-        Array.Sort(matrix, (equation1, equation2) => GetLeadingZeros(equation1).CompareTo(GetLeadingZeros(equation2)));
         for (int i = 0; i < matrix.Length - 1; i++)
         {
+            Array.Sort(matrix, (equation1, equation2) => GetLeadingZeros(equation1).CompareTo(GetLeadingZeros(equation2)));
             for (int j = i + 1; j < matrix.Length; j++)
             {
                 //if (GetLeadingZeros(matrix[i]) == GetLeadingZeros(matrix[j]))
@@ -74,6 +84,8 @@ public class LinearEquations
                 //    continue;
                 //}
                 matrix[j] = GetSumOfEquations(matrix[i], matrix[j], GetLeadingZeros(matrix[i]));
+                Console.WriteLine("\nAfter processing row {0} and row {1}:", i, j);
+                PrintMatrix(matrix);
             }
         }
     }
