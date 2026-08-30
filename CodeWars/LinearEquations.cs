@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Text;
+using System.Numerics;
 
 namespace CodeWars;
 
 public class LinearEquations
 {
-    public static string Solve(string input)
+    public string Solve(string input)
     {
         try
         {
@@ -19,7 +20,7 @@ public class LinearEquations
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            return "NONE";
+            return "SOL = NONE";
         }
     }
 
@@ -250,7 +251,7 @@ public class LinearEquations
 
     static string GetStringFromMatrix(Fraction[][] results)
     {
-        var output = new StringBuilder();
+        var output = new StringBuilder("SOL = ");
         if (results.Length == 0 || results[0].Length == 0) return string.Empty;
 
         string AppendRow(int k, out bool isZero)
@@ -302,10 +303,38 @@ public class LinearEquations
         return output.ToString();
     }
 
-    class Fraction(int numerator = 0, int denominator = 1)
+    class Fraction
     {
-        public int Numerator { get; set; } = numerator;
-        public int Denominator { get; set; } = denominator == 0 ? throw new ArgumentException("Denominator cannot be zero") : denominator;
+        public BigInteger Numerator { get; set; }
+        public BigInteger Denominator { get; set; }
+
+        public Fraction()
+        {
+            Numerator = 0;
+            Denominator = 1;
+        }
+
+        public Fraction(long numerator)
+        {
+            Numerator = new BigInteger(numerator);
+            Denominator = BigInteger.One;
+        }
+
+        public Fraction(long numerator, long denominator)
+        {
+            if (denominator == 0) throw new ArgumentException("Denominator cannot be zero");
+            Numerator = new BigInteger(numerator);
+            Denominator = new BigInteger(denominator);
+            Reduce(this);
+        }
+
+        public Fraction(BigInteger numerator, BigInteger denominator)
+        {
+            if (denominator == 0) throw new ArgumentException("Denominator cannot be zero");
+            Numerator = numerator;
+            Denominator = denominator;
+            Reduce(this);
+        }
 
         public static Fraction operator *(Fraction a, Fraction b)
         {
@@ -319,17 +348,14 @@ public class LinearEquations
 
         public static Fraction operator +(Fraction a, Fraction b)
         {
-            int numerator = a.Numerator * b.Denominator + b.Numerator * a.Denominator;
-            int denominator = a.Denominator * b.Denominator;
+            var numerator = a.Numerator * b.Denominator + b.Numerator * a.Denominator;
+            var denominator = a.Denominator * b.Denominator;
             return new Fraction(numerator, denominator);
         }
 
         public static Fraction operator /(Fraction a, Fraction b)
         {
-            if (b.Numerator == 0)
-            {
-                throw new DivideByZeroException("Cannot divide by zero fraction.");
-            }
+            if (b.Numerator == 0) throw new DivideByZeroException("Cannot divide by zero fraction.");
             var result = new Fraction(a.Numerator * b.Denominator, a.Denominator * b.Numerator);
             if (result.Denominator < 0)
             {
@@ -341,8 +367,8 @@ public class LinearEquations
 
         public static Fraction operator -(Fraction a, Fraction b)
         {
-            int numerator = a.Numerator * b.Denominator - b.Numerator * a.Denominator;
-            int denominator = a.Denominator * b.Denominator;
+            var numerator = a.Numerator * b.Denominator - b.Numerator * a.Denominator;
+            var denominator = a.Denominator * b.Denominator;
             return new Fraction(numerator, denominator);
         }
 
@@ -353,12 +379,13 @@ public class LinearEquations
 
         public static bool operator ==(Fraction a, double b)
         {
-            return a.Numerator / a.Denominator == b;
+            if (ReferenceEquals(a, null)) return false;
+            return (double)a.Numerator / (double)a.Denominator == b;
         }
 
         public static bool operator ==(double a, Fraction b)
         {
-            return a == ((double)b.Numerator) / b.Denominator;
+            return b == a;
         }
 
         public static bool operator !=(Fraction a, double b)
@@ -371,21 +398,35 @@ public class LinearEquations
             return !(a == b);
         }
 
+        public static bool operator ==(Fraction a, long b)
+        {
+            if (ReferenceEquals(a, null)) return false;
+            return a.Numerator == a.Denominator * b;
+        }
+
+        public static bool operator !=(Fraction a, long b)
+        {
+            return !(a == b);
+        }
+
         public static bool operator <(Fraction a, double b)
         {
-            return a.Numerator / a.Denominator < b;
+            return (double)a.Numerator / (double)a.Denominator < b;
         }
 
         public static bool operator >(Fraction a, double b)
         {
-            return a.Numerator / a.Denominator > b;
+            return (double)a.Numerator / (double)a.Denominator > b;
         }
 
         public static Fraction Reduce(Fraction f)
         {
-            int gcd = GetGCD(f.Numerator, f.Denominator);
-            f.Numerator /= gcd;
-            f.Denominator /= gcd;
+            var gcd = GetGCD(BigInteger.Abs(f.Numerator), BigInteger.Abs(f.Denominator));
+            if (gcd != 0)
+            {
+                f.Numerator /= gcd;
+                f.Denominator /= gcd;
+            }
             if (f.Denominator < 0)
             {
                 f.Numerator = -f.Numerator;
@@ -394,11 +435,11 @@ public class LinearEquations
             return f;
         }
 
-        static int GetGCD(int a, int b)
+        static BigInteger GetGCD(BigInteger a, BigInteger b)
         {
             while (b != 0)
             {
-                int temp = b;
+                var temp = b;
                 b = a % b;
                 a = temp;
             }
@@ -407,16 +448,17 @@ public class LinearEquations
 
         public override string ToString()
         {
-            if (Denominator == 1) return Numerator.ToString();
-            return $"{Numerator}/{Denominator}";
+            var r = Reduce(new Fraction(Numerator, Denominator));
+            if (r.Denominator == 1) return r.Numerator.ToString();
+            return $"{r.Numerator}/{r.Denominator}";
         }
 
         public override bool Equals(object? obj)
         {
             if (obj is Fraction other)
             {
-                var reducedThis = Reduce(this);
-                var reducedOther = Reduce(other);
+                var reducedThis = Reduce(new Fraction(Numerator, Denominator));
+                var reducedOther = Reduce(new Fraction(other.Numerator, other.Denominator));
                 return reducedThis.Numerator == reducedOther.Numerator && reducedThis.Denominator == reducedOther.Denominator;
             }
             return false;
