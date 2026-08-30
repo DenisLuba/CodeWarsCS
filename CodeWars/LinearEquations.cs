@@ -7,9 +7,20 @@ public class LinearEquations
 {
     public static string Solve(string input)
     {
-        var matrix = GetMatrixFromString(input);
-        var results = SolveByGauss(matrix);
-        return GetStringFromMatrix(results);
+        try
+        {
+            var matrix = GetMatrixFromString(input);
+            SetEchelonFormMatrix(matrix);
+
+            var results = SolveByGauss(matrix);
+
+            return GetStringFromMatrix(results);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            return "NONE";
+        }
     }
 
     static Fraction[][] SolveByGauss(Fraction[][] matrix)
@@ -18,35 +29,50 @@ public class LinearEquations
         return GetResults(matrix);
     }
 
+    static int GetLeadingZeros(Fraction[] fractions)
+    {
+        var leadingZeros = 0;
+        foreach (Fraction fraction in fractions)
+        {
+            if (fraction == 0) leadingZeros++;
+            else break;
+        }
+        return leadingZeros;
+    }
+
+    static Fraction[] GetSumOfEquations(Fraction[] equation1, Fraction[] equation2, int i)
+    {
+        if (equation1.Length != equation2.Length)
+        {
+            throw new ArgumentException("Equations must have the same length.");
+        }
+        i = i >= equation1.Length - 1
+            ? equation1.Length - 2 >= 0 ? equation1.Length - 2 : 0
+            : i;
+
+        var result = new Fraction[equation1.Length];
+        var factorFraction2 = equation1[i];
+        var factorFraction1 = equation2[i];
+
+        for (int j = 0; j < equation1.Length; j++)
+        {
+            result[j] = equation2[j] * factorFraction2 - equation1[j] * factorFraction1;
+        }
+        return result;
+    }
+
     static void SetEchelonFormMatrix(Fraction[][] matrix)
     {
-        var factorFraction = new Fraction();
-
-        // создаем ступенчатую структуру системы линейных уравнений 
-        // с коэффициентом, равным 1, для каждой первой переменной в этой лестнице
-        for (int k = 0; k < matrix.Length && k < matrix[0].Length - 1; k++)
+        Array.Sort(matrix, (equation1, equation2) => GetLeadingZeros(equation1).CompareTo(GetLeadingZeros(equation2)));
+        for (int i = 0; i < matrix.Length - 1; i++)
         {
-            for (int i = k; i < matrix.Length; i++)
+            for (int j = i + 1; j < matrix.Length; j++)
             {
-                factorFraction.Numerator = matrix[i][k] > 0
-                    ? matrix[i][k].Denominator
-                    : -matrix[i][k].Denominator;
-                factorFraction.Denominator = Math.Abs(matrix[i][k].Numerator);
-
-                for (int j = 0; j < matrix[i].Length - 1; j++)
-                {
-                    matrix[i][j] *= factorFraction;
-                }
-            }
-
-            if (k == 0) continue;
-
-            for (int i = k; i < matrix.Length; i++)
-            {
-                for (int j = 0; j < matrix[i].Length - 1; j++)
-                {
-                    matrix[i][j] = matrix[i][j] - matrix[k - 1][j];
-                }
+                //if (GetLeadingZeros(matrix[i]) == GetLeadingZeros(matrix[j]))
+                //{
+                //    continue;
+                //}
+                matrix[j] = GetSumOfEquations(matrix[i], matrix[j], GetLeadingZeros(matrix[i]));
             }
         }
     }
@@ -160,6 +186,15 @@ public class LinearEquations
                 continue;
             }
 
+            var isUnknown = true;
+            for (int i = 0; i < results[xiFree].Length; i++)
+            {
+                isUnknown = (results[xiFree][i] == 0 && xiFree != i)
+                    || (results[xiFree][i] == 1 && xiFree == i);
+                if (!isUnknown) break;
+            }
+            if (isUnknown) continue;
+
             var coefficients = equation[xiFree];
             if (coefficients == 0) continue;
 
@@ -213,39 +248,44 @@ public class LinearEquations
         var output = new StringBuilder();
         if (results.Length == 0 || results[0].Length == 0) return string.Empty;
 
-        string AppendRow(int k)
+        string AppendRow(int k, out bool isZero)
         {
-            //var zeroNumber = 0;
+            var zeroNumber = 0;
             var expression = new StringBuilder();
             for (int i = 0; i < results.Length; i++)
             {
                 if (results[i][k] is null)
                     results[i][k] = new Fraction();
 
-                //if (results[i][k].Numerator == 0)
-                //{
-                //    zeroNumber++;
-                //}
+                if (results[i][k].Numerator == 0)
+                {
+                    zeroNumber++;
+                }
 
                 var z = i == 0 ? $"({results[i][k]}" : $"; {results[i][k]}";
                 expression.Append(z);
             }
-            //if (zeroNumber == results.Length) return string.Empty;
+            isZero = zeroNumber == results.Length;
 
             expression.Append(")");
             return expression.ToString();
         }
 
-        var start = AppendRow(results[0].Length - 1);
+        var start = AppendRow(results[0].Length - 1, out bool _);
         if (!string.IsNullOrEmpty(start))
         {
-            output.Append(start);
+            output.Append(start).Append(" + ");
         }
-
-        for (int i = 0; i < results[0].Length - 1; i++)
+        int k = 0;
+        for (int i = 0; i < results[0].Length - 1; i++, k++)
         {
-            var expression = AppendRow(i);
-            var s = i == 0 ? $" q{i + 1} * " : $" + q{i + 1} * ";
+            var expression = AppendRow(i, out bool isZero);
+            if (isZero)
+            {
+                k--;
+                continue;
+            }
+            var s = k == 0 ? $"q{k + 1} * " : $" + q{k + 1} * ";
             if (!string.IsNullOrEmpty(expression))
             {
                 output.Append(s).Append(expression);
@@ -308,7 +348,17 @@ public class LinearEquations
             return a.Numerator / a.Denominator == b;
         }
 
+        public static bool operator ==(double a, Fraction b)
+        {
+            return a == ((double)b.Numerator) / b.Denominator;
+        }
+
         public static bool operator !=(Fraction a, double b)
+        {
+            return !(a == b);
+        }
+
+        public static bool operator !=(double a, Fraction b)
         {
             return !(a == b);
         }
